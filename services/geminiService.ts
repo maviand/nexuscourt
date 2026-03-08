@@ -2,7 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { PlayerProfile, SeasonStats, EraContext, CoachingStrategy, TrainingFocus, Badge, Coach } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-const MODEL_ID = "gemini-2.0-flash";
+const MODEL_ID = "gemini-3.1-pro";
 
 async function generateWithRetry(model: string, params: any, retries = 3) {
     for (let i = 0; i < retries; i++) {
