@@ -2,7 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { PlayerProfile, SeasonStats, EraContext, CoachingStrategy, TrainingFocus, Badge, Coach } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-const MODEL_ID = "gemini-2.5-flash";
+const MODEL_ID = "gemini-2.0-flash";
 
 async function generateWithRetry(model: string, params: any, retries = 3) {
     for (let i = 0; i < retries; i++) {
@@ -14,7 +14,7 @@ async function generateWithRetry(model: string, params: any, retries = 3) {
             const isRateLimit = e.status === 429 || e.code === 429 || (e.message && e.message.includes('429'));
             if ((isRateLimit || e.status >= 500) && i < retries - 1) {
                 const waitTime = 2000 * Math.pow(2, i);
-                console.warn(`Attempt ${i + 1} failed. Retrying in ${waitTime}ms...`);
+                console.warn(`Attempt ${i + 1} failed.Retrying in ${waitTime}ms...`);
                 await new Promise(r => setTimeout(r, waitTime));
                 continue;
             }
@@ -45,7 +45,7 @@ export const simulateSeason = async (
     const prevFatigue = lastSeason ? lastSeason.fatigue : 0;
 
     // Compact history to save tokens
-    const historySummary = previousSeasons.slice(-3).map(s => `${s.year}: ${s.team}, ${s.ppg}ppg, ${s.awards.join(',')}`).join(' | ');
+    const historySummary = previousSeasons.slice(-3).map(s => `${s.year}: ${s.team}, ${s.ppg} ppg, ${s.awards.join(',')} `).join(' | ');
 
     // Coach context - prefer the active coach passed in (newly hired or current), fallback to last season's
     const coachContext = activeCoach ? activeCoach : (lastSeason?.headCoach);
@@ -87,62 +87,62 @@ export const simulateSeason = async (
         .join(', ');
 
     const prompt = `
-    Role: Nexus Engine (High-Fidelity NBA Simulator).
-    Task: Simulate NBA Season ${currentYear}-${currentYear + 1}.
-    
-    PLAYER: ${player.name} (${player.position}), Age ${age}, Potential: ${player.potential}.
-    ATTRIBUTES: ${JSON.stringify(currentAttributes)}
-    BADGES: ${JSON.stringify(player.badges.map(b => `${b.name} (${b.tier})`))}
-    HISTORY: ${historySummary}
+Role: Nexus Engine(High - Fidelity NBA Simulator).
+    Task: Simulate NBA Season ${currentYear} -${currentYear + 1}.
+
+PLAYER: ${player.name} (${player.position}), Age ${age}, Potential: ${player.potential}.
+ATTRIBUTES: ${JSON.stringify(currentAttributes)}
+BADGES: ${JSON.stringify(player.badges.map(b => `${b.name} (${b.tier})`))}
+HISTORY: ${historySummary}
     PREV FATIGUE: ${prevFatigue}
     CURRENT COACH: ${coachStr}
     ERA CONTEXT: ${eraContext ? JSON.stringify(eraContext) : 'Not provided'}
-    
-    CONTEXT:
-    - Current Team: ${currentTeam}
-    - Trade Request: ${tradeRequest.requested ? `ACTIVE to ${tradeRequest.target}` : "None"}
-    - Strategy: ${strategy.offensiveSystem}, Usage: ${strategy.usageRate}, Min: ${strategy.minutesPerGame}
-    - Injuries Enabled: ${injuriesEnabled ? "YES" : "NO"}
-    - **TRAINING**: ${trainingInstruction}
+
+CONTEXT:
+- Current Team: ${currentTeam}
+- Trade Request: ${tradeRequest.requested ? `ACTIVE to ${tradeRequest.target}` : "None"}
+- Strategy: ${strategy.offensiveSystem}, Usage: ${strategy.usageRate}, Min: ${strategy.minutesPerGame}
+- Injuries Enabled: ${injuriesEnabled ? "YES" : "NO"}
+    - ** TRAINING **: ${trainingInstruction}
 
     CRITICAL INSTRUCTIONS:
-    1. **Historical Accuracy**: Adjust win totals/stats for ${currentYear}.
-    2. **Trade Logic**: 
-       - If 'Trade Request' is ACTIVE, there is a High Probability (80%) the player is traded to '${tradeRequest.target}' or a contender. 
+1. ** Historical Accuracy **: Adjust win totals / stats for ${currentYear}.
+    2. ** Trade Logic **:
+- If 'Trade Request' is ACTIVE, there is a High Probability(80 %) the player is traded to '${tradeRequest.target}' or a contender. 
        - If traded, update the 'team' field in the output to the NEW team.
        - Narrative must reflect the trade drama.
-    3. **Aging, Regression & POTENTIAL (MANDATORY)**:
-       - Age 19-27: Rapid Growth (if potential allows).
-       - **CRITICAL**: If Potential is 99, the player MUST reach 99 Overall by age 26-28 and maintain elite stats. They are a generational talent. DO NOT let a 99 potential player bust.
-       - Age 28-31: Prime (Peak stats).
-       - Age 32-35: Physical Decline. 'speed', 'vertical', 'acceleration' MUST decrease by 2-5 points per year.
-       - Age 36+: HEAVY Regression. All physicals drop 5-10 points. Skills drop. 
-       - If Age > 40, player is likely a bench warmer or retired (very low stats).
-    4. **Coach Influence & Firings**:
-       - The Head Coach has a 'Player Development' rating of ${devRating}/99.
-       - IF Rating > 75 AND Age < 28: You MUST boost attribute growth significantly (an extra +2 to +4 on focused stats). The player learns faster.
+    3. ** Aging, Regression & POTENTIAL(MANDATORY) **:
+- Age 19 - 27: Rapid Growth(if potential allows).
+       - ** CRITICAL **: If Potential is 99, the player MUST reach 99 Overall by age 26 - 28 and maintain elite stats.They are a generational talent.DO NOT let a 99 potential player bust.
+       - Age 28 - 31: Prime(Peak stats).
+       - Age 32 - 35: Physical Decline. 'speed', 'vertical', 'acceleration' MUST decrease by 2 - 5 points per year.
+       - Age 36 +: HEAVY Regression.All physicals drop 5 - 10 points.Skills drop. 
+       - If Age > 40, player is likely a bench warmer or retired(very low stats).
+    4. ** Coach Influence & Firings **:
+- The Head Coach has a 'Player Development' rating of ${devRating}/99.
+    - IF Rating > 75 AND Age < 28: You MUST boost attribute growth significantly(an extra + 2 to + 4 on focused stats).The player learns faster.
        - IF Rating < 60: Player growth is stagnant or slow.
-       - **FIRINGS**: If the team underperforms expectations, the coach MUST be fired. Generate a new 'headCoach' with different attributes and philosophies.
-    5. **Team Chemistry**:
-       - Calculate a 0-100 score based on winning percentage, player personalities, and coaching fit.
-       - Low chemistry (<50) MUST negatively impact team record and player stats. High chemistry (>80) boosts performance.
-    6. **AI Trades & League Dynamics**:
-       - Simulate 1-2 major trades between AI-controlled teams. Describe these in 'leagueContext.headlines'.
+       - ** FIRINGS **: If the team underperforms expectations, the coach MUST be fired.Generate a new 'headCoach' with different attributes and philosophies.
+    5. ** Team Chemistry **:
+- Calculate a 0 - 100 score based on winning percentage, player personalities, and coaching fit.
+       - Low chemistry(<50) MUST negatively impact team record and player stats.High chemistry(> 80) boosts performance.
+    6. ** AI Trades & League Dynamics **:
+- Simulate 1 - 2 major trades between AI - controlled teams.Describe these in 'leagueContext.headlines'.
        - If the player's team needs a piece, they might make a trade. Reflect this in 'teammates'.
-    7. **Injuries**:
-       - If Injuries Enabled is YES and Fatigue is high (>70), roll for injury.
-       - Major injury = significantly fewer games played (e.g. < 40) and attribute regression.
-    8. **Playoffs**: Generate a full bracket summary.
-    9. **Narrative Depth**:
-       - The 'narrative' field MUST be detailed and cinematic.
-       - **Reference specific attributes**: You MUST mention how their high ${topAttributes || 'attributes'} influenced specific games.
-       - **Reference specific badges**: You MUST mention how their ${topBadges || 'badges'} impacted clutch moments.
-       - **Matchups**: Name drop specific real-world rival players relevant to ${currentYear} (e.g., if 2009, mention Kobe/LeBron; if 2024, mention Luka/Ant/Giannis).
-       - Describe a "Signature Moment" (e.g. a game-winner or playoff takeover).
+7. ** Injuries **:
+- If Injuries Enabled is YES and Fatigue is high(> 70), roll for injury.
+       - Major injury = significantly fewer games played(e.g. < 40) and attribute regression.
+    8. ** Playoffs **: Generate a full bracket summary.
+    9. ** Narrative Depth **:
+- The 'narrative' field MUST be detailed and cinematic.
+       - ** Reference specific attributes **: You MUST mention how their high ${topAttributes || 'attributes'} influenced specific games.
+       - ** Reference specific badges **: You MUST mention how their ${topBadges || 'badges'} impacted clutch moments.
+       - ** Matchups **: Name drop specific real - world rival players relevant to ${currentYear} (e.g., if 2009, mention Kobe / LeBron; if 2024, mention Luka / Ant / Giannis).
+- Describe a "Signature Moment"(e.g.a game - winner or playoff takeover).
 
-    10. **Era-Specific Context**: The 'leagueContext.headlines' and commentary MUST reflect real historical NBA events, rules, and playstyles for the year ${currentYear}. If 1996, mention Jordan's Bulls. If 2016, mention the Warriors 73-9.
-    11. **Draft Class**: Generate the top 3 prospects for the upcoming draft class. Include their name, position, archetype, potential (1-99), height, and a real NBA player comparison.
-    12. **Standings**: Generate the FULL conference standings (15 teams in the East, 15 teams in the West).
+    10. ** Era - Specific Context **: The 'leagueContext.headlines' and commentary MUST reflect real historical NBA events, rules, and playstyles for the year ${currentYear}. If 1996, mention Jordan's Bulls. If 2016, mention the Warriors 73-9.
+11. ** Draft Class **: Generate the top 3 prospects for the upcoming draft class. Include their name, position, archetype, potential(1 - 99), height, and a real NBA player comparison.
+    12. ** Standings **: Generate the FULL conference standings(15 teams in the East, 15 teams in the West).
 
     Return valid JSON.
     `;
@@ -371,7 +371,7 @@ export const simulateSeason = async (
 };
 
 export const getEraContext = async (year: number): Promise<EraContext> => {
-    const prompt = `Provide a brief context for the NBA in the year ${year}. Era name, description, difficulty. JSON output.`;
+    const prompt = `Provide a brief context for the NBA in the year ${year}. Era name, description, difficulty.JSON output.`;
     const response = await generateWithRetry(MODEL_ID, {
         contents: prompt,
         config: { responseMimeType: "application/json" }

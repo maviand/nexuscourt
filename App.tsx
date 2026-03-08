@@ -296,7 +296,7 @@ export default function App() {
             setCurrentYear(prev => prev + 1);
         } catch (e) {
             console.error(e);
-            setError("The timeline destabilized. Failed to simulate season. Please try again.");
+            setError(`The timeline destabilized. Failed to simulate season. Detail: ${e?.message || 'Unknown'}. Please try again.`);
         } finally {
             setIsSimulating(false);
         }
