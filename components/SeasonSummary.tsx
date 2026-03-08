@@ -45,6 +45,7 @@ import {
   User,
   PenTool,
   Info,
+  Target
 } from "lucide-react";
 import {
   BarChart,
@@ -114,11 +115,10 @@ const Tabs = ({
       <button
         key={tab}
         onClick={() => onChange(tab)}
-        className={`px-6 py-4 text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
-          active === tab
-            ? "text-nba-blue border-b-4 border-nba-blue bg-slate-50"
-            : "text-slate-600 hover:text-nba-blue hover:bg-slate-50"
-        }`}
+        className={`px-6 py-4 text-sm font-bold uppercase tracking-wider transition-all whitespace-nowrap ${active === tab
+          ? "text-[#1D428A] border-b-4 border-[#C9082A] bg-white shadow-sm"
+          : "text-slate-600 hover:text-[#1D428A] hover:bg-slate-50"
+          }`}
       >
         {tab}
       </button>
@@ -630,7 +630,7 @@ export const SeasonSummary: React.FC<Props> = ({
       <div className="bg-white border-b border-slate-200 p-8 flex flex-col md:flex-row justify-between items-center shadow-sm">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-4xl font-black text-nba-blue font-mono">
+            <span className="text-4xl font-black text-[#1D428A] display-font">
               {season.year}
             </span>
             <span className="px-3 py-1 bg-slate-100 text-slate-600 font-bold uppercase text-xs tracking-wider rounded">
@@ -674,9 +674,9 @@ export const SeasonSummary: React.FC<Props> = ({
       <div className="p-6">
         {activeTab === "Profile" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white p-6 border border-slate-200 shadow-sm rounded">
-              <h3 className="text-nba-blue font-bold uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2">
-                <User size={18} /> Player Bio
+            <div className="bg-white p-6 border border-slate-200 shadow-sm rounded-xl">
+              <h3 className="text-nba-dark font-black uppercase display-font tracking-wide mb-4 border-b-2 border-slate-200 pb-2 flex items-center gap-2">
+                <User size={18} className="text-[#1D428A]" /> Player Bio
               </h3>
               {isEditingBio ? (
                 <div className="flex flex-col gap-4">
@@ -727,9 +727,9 @@ export const SeasonSummary: React.FC<Props> = ({
                 </div>
               )}
             </div>
-            <div className="bg-white p-6 border border-slate-200 shadow-sm rounded">
-              <h3 className="text-nba-blue font-bold uppercase tracking-wider mb-4 border-b border-slate-100 pb-2 flex items-center gap-2">
-                <Award size={18} /> Career Legacy
+            <div className="bg-white p-6 border border-slate-200 shadow-sm rounded-xl">
+              <h3 className="text-nba-dark font-black uppercase display-font tracking-wide mb-4 border-b-2 border-slate-200 pb-2 flex items-center gap-2">
+                <Award size={18} className="text-[#C9082A]" /> Career Legacy
               </h3>
               <div className="mb-6 relative group">
                 <div className="text-xs font-bold text-slate-500 uppercase mb-1 flex items-center gap-1 cursor-help">
@@ -763,10 +763,10 @@ export const SeasonSummary: React.FC<Props> = ({
                   ))}
                   {(!player?.careerStats?.awards ||
                     player.careerStats.awards.length === 0) && (
-                    <span className="text-slate-400 text-xs italic">
-                      No awards yet.
-                    </span>
-                  )}
+                      <span className="text-slate-400 text-xs italic">
+                        No awards yet.
+                      </span>
+                    )}
                 </div>
               </div>
             </div>
@@ -776,10 +776,10 @@ export const SeasonSummary: React.FC<Props> = ({
         {activeTab === "Career" && (
           <div className="space-y-8">
             <div className="bg-white p-6 border border-slate-200 shadow-sm rounded-xl">
-              <h3 className="text-nba-blue font-bold uppercase tracking-wider mb-6 border-b border-slate-100 pb-2 flex items-center gap-2">
-                <Trophy size={20} /> Career Achievements
+              <h3 className="text-nba-dark font-black uppercase display-font tracking-wide mb-6 border-b-2 border-slate-200 pb-2 flex items-center gap-2">
+                <Trophy size={20} className="text-[#1D428A]" /> Career Achievements
               </h3>
-              
+
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
                 <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 flex flex-col items-center justify-center text-center">
                   <div className="text-slate-500 text-xs font-bold uppercase mb-1">Total Points</div>
@@ -815,7 +815,7 @@ export const SeasonSummary: React.FC<Props> = ({
                     )}
                   </div>
                 </div>
-                
+
                 <div>
                   <h4 className="text-sm font-bold text-slate-700 uppercase mb-3 flex items-center gap-2">
                     <Star size={16} className="text-nba-blue" /> MVP Awards ({player?.careerStats?.mvps || 0})
@@ -832,21 +832,21 @@ export const SeasonSummary: React.FC<Props> = ({
                   </div>
                 </div>
               </div>
-              
+
               <div className="mt-8">
-                  <h4 className="text-sm font-bold text-slate-700 uppercase mb-3 flex items-center gap-2">
-                    <Award size={16} className="text-emerald-600" /> Other Accolades
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {player?.careerStats?.awards?.filter(a => !a.includes('Champion') && !(a.includes('MVP') && !a.includes('Finals'))).map((award, i) => (
-                      <span key={i} className="px-3 py-1.5 bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold uppercase rounded-full shadow-sm">
-                        {award}
-                      </span>
-                    ))}
-                    {(!player?.careerStats?.awards || player.careerStats.awards.filter(a => !a.includes('Champion') && !(a.includes('MVP') && !a.includes('Finals'))).length === 0) && (
-                      <span className="text-slate-400 text-xs italic">No other accolades yet.</span>
-                    )}
-                  </div>
+                <h4 className="text-sm font-bold text-slate-700 uppercase mb-3 flex items-center gap-2">
+                  <Award size={16} className="text-emerald-600" /> Other Accolades
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {player?.careerStats?.awards?.filter(a => !a.includes('Champion') && !(a.includes('MVP') && !a.includes('Finals'))).map((award, i) => (
+                    <span key={i} className="px-3 py-1.5 bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold uppercase rounded-full shadow-sm">
+                      {award}
+                    </span>
+                  ))}
+                  {(!player?.careerStats?.awards || player.careerStats.awards.filter(a => !a.includes('Champion') && !(a.includes('MVP') && !a.includes('Finals'))).length === 0) && (
+                    <span className="text-slate-400 text-xs italic">No other accolades yet.</span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -975,13 +975,12 @@ export const SeasonSummary: React.FC<Props> = ({
                   </div>
                   <div className="flex-1 h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                     <div
-                      className={`h-full transition-all duration-300 ${
-                        season.teamChemistry >= 80
-                          ? "bg-emerald-500"
-                          : season.teamChemistry >= 50
-                            ? "bg-yellow-500"
-                            : "bg-red-500"
-                      }`}
+                      className={`h-full transition-all duration-300 ${season.teamChemistry >= 80
+                        ? "bg-emerald-500"
+                        : season.teamChemistry >= 50
+                          ? "bg-yellow-500"
+                          : "bg-red-500"
+                        }`}
                       style={{ width: `${season.teamChemistry}%` }}
                     ></div>
                   </div>
@@ -1630,13 +1629,12 @@ export const SeasonSummary: React.FC<Props> = ({
                       </span>
                     </div>
                     <span
-                      className={`font-black ${
-                        mate.synergyGrade?.startsWith("A")
-                          ? "text-green-600"
-                          : mate.synergyGrade?.startsWith("B")
-                            ? "text-blue-600"
-                            : "text-slate-500"
-                      }`}
+                      className={`font-black ${mate.synergyGrade?.startsWith("A")
+                        ? "text-green-600"
+                        : mate.synergyGrade?.startsWith("B")
+                          ? "text-blue-600"
+                          : "text-slate-500"
+                        }`}
                     >
                       {mate.synergyGrade || "C"}
                     </span>
@@ -1671,13 +1669,12 @@ export const SeasonSummary: React.FC<Props> = ({
                 </div>
 
                 <div
-                  className={`mt-3 text-[10px] font-bold uppercase px-2 py-1 rounded text-center ${
-                    mate.morale === "Frustrated"
-                      ? "bg-red-100 text-red-600"
-                      : mate.morale === "Happy"
-                        ? "bg-emerald-100 text-emerald-600"
-                        : "bg-slate-100 text-slate-500"
-                  }`}
+                  className={`mt-3 text-[10px] font-bold uppercase px-2 py-1 rounded text-center ${mate.morale === "Frustrated"
+                    ? "bg-red-100 text-red-600"
+                    : mate.morale === "Happy"
+                      ? "bg-emerald-100 text-emerald-600"
+                      : "bg-slate-100 text-slate-500"
+                    }`}
                 >
                   Morale: {mate.morale || "Content"}
                 </div>
@@ -1757,7 +1754,7 @@ export const SeasonSummary: React.FC<Props> = ({
                 No previous season data available for comparison.
               </div>
             )}
-            
+
             {/* Durability & Stamina Visualization */}
             <div className="mt-8 border-t border-slate-200 pt-8">
               <h3 className="text-nba-blue font-bold uppercase tracking-wider mb-6 flex items-center gap-2">
@@ -1792,7 +1789,7 @@ export const SeasonSummary: React.FC<Props> = ({
                   </div>
                 </div>
               </div>
-              
+
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart
@@ -2138,15 +2135,14 @@ export const SeasonSummary: React.FC<Props> = ({
                                 {badge.name}
                               </span>
                               <span
-                                className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded text-white ${
-                                  badge.tier === "Bronze"
-                                    ? "bg-orange-700"
-                                    : badge.tier === "Silver"
-                                      ? "bg-slate-400"
-                                      : badge.tier === "Gold"
-                                        ? "bg-yellow-500"
-                                        : "bg-purple-600"
-                                }`}
+                                className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded text-white ${badge.tier === "Bronze"
+                                  ? "bg-orange-700"
+                                  : badge.tier === "Silver"
+                                    ? "bg-slate-400"
+                                    : badge.tier === "Gold"
+                                      ? "bg-yellow-500"
+                                      : "bg-purple-600"
+                                  }`}
                               >
                                 {badge.tier}
                               </span>
@@ -2160,11 +2156,10 @@ export const SeasonSummary: React.FC<Props> = ({
                               <button
                                 onClick={() => initiateUpgrade(idx)}
                                 disabled={!canAfford}
-                                className={`text-xs font-bold uppercase px-3 py-2 rounded flex flex-col items-center ${
-                                  canAfford
-                                    ? "bg-nba-blue text-white hover:bg-blue-800"
-                                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
-                                }`}
+                                className={`text-xs font-bold uppercase px-3 py-2 rounded flex flex-col items-center ${canAfford
+                                  ? "bg-nba-blue text-white hover:bg-blue-800"
+                                  : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                  }`}
                               >
                                 <span>Upgrade</span>
                                 <span className="text-[10px] opacity-80">
@@ -2202,13 +2197,12 @@ export const SeasonSummary: React.FC<Props> = ({
                     </div>
                     <div className="h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-200 mb-3">
                       <div
-                        className={`h-full transition-all duration-300 ${
-                          season.fatigue > 80
-                            ? "bg-red-600"
-                            : season.fatigue > 50
-                              ? "bg-yellow-500"
-                              : "bg-emerald-500"
-                        }`}
+                        className={`h-full transition-all duration-300 ${season.fatigue > 80
+                          ? "bg-red-600"
+                          : season.fatigue > 50
+                            ? "bg-yellow-500"
+                            : "bg-emerald-500"
+                          }`}
                         style={{ width: `${season.fatigue}%` }}
                       ></div>
                     </div>
@@ -2470,10 +2464,10 @@ export const SeasonSummary: React.FC<Props> = ({
                       {season.playoffStats.bracket.series.filter(
                         (s: any) => s.round === round,
                       ).length === 0 && (
-                        <div className="text-center text-xs text-slate-300 italic p-4 border border-dashed border-slate-200 rounded">
-                          No active series
-                        </div>
-                      )}
+                          <div className="text-center text-xs text-slate-300 italic p-4 border border-dashed border-slate-200 rounded">
+                            No active series
+                          </div>
+                        )}
                     </div>
                   ))}
                 </div>

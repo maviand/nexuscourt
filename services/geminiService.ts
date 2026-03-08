@@ -2,30 +2,30 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { PlayerProfile, SeasonStats, EraContext, CoachingStrategy, TrainingFocus, Badge, Coach } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-const MODEL_ID = "gemini-3-flash-preview"; 
+const MODEL_ID = "gemini-2.5-flash";
 
 async function generateWithRetry(model: string, params: any, retries = 3) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const result = await ai.models.generateContent({ model, ...params });
-      if (!result.text) throw new Error("Empty response from AI");
-      return result;
-    } catch (e: any) {
-      const isRateLimit = e.status === 429 || e.code === 429 || (e.message && e.message.includes('429'));
-      if ((isRateLimit || e.status >= 500) && i < retries - 1) {
-        const waitTime = 2000 * Math.pow(2, i);
-        console.warn(`Attempt ${i+1} failed. Retrying in ${waitTime}ms...`);
-        await new Promise(r => setTimeout(r, waitTime));
-        continue;
-      }
-      throw e;
+    for (let i = 0; i < retries; i++) {
+        try {
+            const result = await ai.models.generateContent({ model, ...params });
+            if (!result.text) throw new Error("Empty response from AI");
+            return result;
+        } catch (e: any) {
+            const isRateLimit = e.status === 429 || e.code === 429 || (e.message && e.message.includes('429'));
+            if ((isRateLimit || e.status >= 500) && i < retries - 1) {
+                const waitTime = 2000 * Math.pow(2, i);
+                console.warn(`Attempt ${i + 1} failed. Retrying in ${waitTime}ms...`);
+                await new Promise(r => setTimeout(r, waitTime));
+                continue;
+            }
+            throw e;
+        }
     }
-  }
 }
 
 export const simulateSeason = async (
-    player: PlayerProfile, 
-    currentYear: number, 
+    player: PlayerProfile,
+    currentYear: number,
     age: number,
     currentAttributes: PlayerProfile['stats'],
     previousSeasons: SeasonStats[],
@@ -37,10 +37,10 @@ export const simulateSeason = async (
     activeCoach?: Coach,
     eraContext?: EraContext
 ): Promise<SeasonStats> => {
-    
+
     const lastSeason = previousSeasons[previousSeasons.length - 1];
     const currentTeam = forcedTeam ? forcedTeam : (lastSeason?.team || "NBA Draft Prospect");
-    
+
     // Calculate accumulated fatigue from previous season if applicable
     const prevFatigue = lastSeason ? lastSeason.fatigue : 0;
 
@@ -60,12 +60,12 @@ export const simulateSeason = async (
         'Defense': ['interiorDefense', 'perimeterDefense', 'steal', 'block', 'lateralQuickness', 'helpDefense', 'onBallDefense'],
         'Rebounding': ['offRebound', 'defRebound', 'strength', 'vertical'],
         'Physicals': ['speed', 'acceleration', 'agility', 'vertical', 'strength', 'stamina'],
-        'Balanced': ['iq', 'stamina', 'rating'], 
-        'Recovery': [] 
+        'Balanced': ['iq', 'stamina', 'rating'],
+        'Recovery': []
     };
-    
+
     const focusedStats = focusMap[trainingFocus] || [];
-    
+
     let trainingInstruction = "";
     if (trainingFocus === 'Recovery') {
         trainingInstruction = "TRAINING FOCUS: RECOVERY. The player focused entirely on health. REDUCE Fatigue significantly (e.g. set to 0-10%). Do NOT boost attributes this season; they should remain static or decline slightly due to lack of reps.";
@@ -79,7 +79,7 @@ export const simulateSeason = async (
         .map(([k]) => k)
         .slice(0, 3)
         .join(', ');
-    
+
     const topBadges = player.badges
         .filter(b => b.tier === 'Hall of Fame' || b.tier === 'Gold')
         .map(b => b.name)
@@ -88,7 +88,7 @@ export const simulateSeason = async (
 
     const prompt = `
     Role: Nexus Engine (High-Fidelity NBA Simulator).
-    Task: Simulate NBA Season ${currentYear}-${currentYear+1}.
+    Task: Simulate NBA Season ${currentYear}-${currentYear + 1}.
     
     PLAYER: ${player.name} (${player.position}), Age ${age}, Potential: ${player.potential}.
     ATTRIBUTES: ${JSON.stringify(currentAttributes)}
@@ -174,7 +174,7 @@ export const simulateSeason = async (
                             }
                         }
                     },
-                    
+
                     // Stats
                     gamesPlayed: { type: Type.INTEGER },
                     minutes: { type: Type.NUMBER },
@@ -342,7 +342,7 @@ export const simulateSeason = async (
                             speed: { type: Type.INTEGER }, acceleration: { type: Type.INTEGER }, agility: { type: Type.INTEGER }, vertical: { type: Type.INTEGER }, strength: { type: Type.INTEGER }, stamina: { type: Type.INTEGER }, durability: { type: Type.INTEGER }, iq: { type: Type.INTEGER }
                         }
                     },
-                    
+
                     championship: { type: Type.BOOLEAN },
                     allStar: { type: Type.BOOLEAN },
                     awards: { type: Type.ARRAY, items: { type: Type.STRING } },
@@ -359,14 +359,14 @@ export const simulateSeason = async (
                 ...data,
                 year: currentYear,
                 age: age,
-                badgesSnapshot: player.badges 
+                badgesSnapshot: player.badges
             };
         } catch (e) {
             console.error("JSON Parsing failed:", response.text);
             throw new Error("Simulation corrupted. AI returned invalid data structure.");
         }
     }
-    
+
     throw new Error("Simulation failed for year " + currentYear);
 };
 
