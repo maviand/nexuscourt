@@ -362,7 +362,7 @@ export default function App() {
             <nav className="sticky top-0 z-50 w-full bg-[#1D428A] text-white shadow-md p-4 mb-8">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white rounded flex items-center justify-center text-nba-red font-black font-display text-xl shadow-inner border-2 border-nba-blue">NBA</div>
+                        <img src="https://cdn.nba.com/logos/leagues/logo-nba.svg" alt="NBA Logo" className="h-10 w-10 object-contain drop-shadow-md" />
                         <div className="flex flex-col">
                             <span className="text-xl font-bold tracking-tighter text-white uppercase display-font leading-none">Nexus Court</span>
                             <span className="text-[10px] text-gray-300 uppercase tracking-widest mt-1">Legacy Simulator</span>
