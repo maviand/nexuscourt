@@ -9,7 +9,7 @@ interface Props {
     onReset: () => void;
 }
 
-const StatCard = ({ label, value, icon: Icon, color }: any) => (
+const StatCard = React.memo(({ label, value, icon: Icon, color }: any) => (
     <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl flex items-center gap-4 hover:border-slate-500 transition-all shadow-lg">
         <div className={`p-3 rounded-lg bg-slate-900 ${color}`}>
             <Icon size={24} />
@@ -19,7 +19,7 @@ const StatCard = ({ label, value, icon: Icon, color }: any) => (
             <p className="text-2xl font-bold text-white font-mono">{value}</p>
         </div>
     </div>
-);
+));
 
 const getLeaderIcon = (category: string) => {
     const cat = category.toLowerCase();
@@ -31,7 +31,7 @@ const getLeaderIcon = (category: string) => {
     return <Trophy size={18} className="text-slate-400" />;
 };
 
-const SeasonRow: React.FC<{ season: any }> = ({ season }) => {
+const SeasonRow = React.memo(({ season }: { season: any }) => {
     const [expanded, setExpanded] = useState(false);
 
     return (
@@ -134,9 +134,9 @@ const SeasonRow: React.FC<{ season: any }> = ({ season }) => {
             )}
         </>
     );
-};
+});
 
-export const SimulationDashboard: React.FC<Props> = ({ simulation, player, onReset }) => {
+export const SimulationDashboard: React.FC<Props> = React.memo(({ simulation, player, onReset }) => {
     const careerPPG = (simulation.seasons.reduce((acc, s) => acc + s.ppg, 0) / simulation.seasons.length).toFixed(1);
     const totalPoints = simulation.seasons.reduce((acc, s) => acc + (s.ppg * s.gamesPlayed), 0).toLocaleString();
     const lastSeason = simulation.seasons[simulation.seasons.length - 1];
@@ -418,4 +418,4 @@ export const SimulationDashboard: React.FC<Props> = ({ simulation, player, onRes
             </div>
         </div>
     );
-};
+});

@@ -89,7 +89,7 @@ interface Props {
   history?: SeasonStats[];
 }
 
-const Tabs = ({
+const Tabs = React.memo(({
   active,
   onChange,
 }: {
@@ -124,7 +124,7 @@ const Tabs = ({
       </button>
     ))}
   </div>
-);
+));
 
 const UPGRADE_COSTS: Record<string, number> = {
   Bronze: 500,
@@ -314,7 +314,7 @@ const StatDifference = ({
   );
 };
 
-const StatTooltip = ({
+const StatTooltip = React.memo(({
   label,
   value,
   tooltip,
@@ -339,9 +339,9 @@ const StatTooltip = ({
       {tooltip}
     </div>
   </div>
-);
+));
 
-export const SeasonSummary: React.FC<Props> = ({
+export const SeasonSummary: React.FC<Props> = React.memo(({
   season,
   previousAttributes,
   previousSeasonStats,
@@ -2531,4 +2531,4 @@ export const SeasonSummary: React.FC<Props> = ({
       </div>
     </div>
   );
-};
+});

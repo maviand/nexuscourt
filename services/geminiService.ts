@@ -1,4 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import { jsonrepair } from 'jsonrepair';
+import { isSeasonStats } from '../typeGuards';
 import { PlayerProfile, SeasonStats, EraContext, CoachingStrategy, TrainingFocus, Badge, Coach } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -354,13 +356,26 @@ CONTEXT:
 
     if (response?.text) {
         try {
-            const data = JSON.parse(response.text);
-            return {
+            const repairedJson = jsonrepair(response.text);
+            const data = JSON.parse(repairedJson);
+
+            // Local calculate fallback for advanced stats
+            if (!data.advanced) {
+                data.advanced = { per: 15, tsPct: 55, usgPct: 20, ortg: 105, drtg: 105, vorp: 1.0, winShares: 2.0 };
+            }
+
+            const constructedData = {
                 ...data,
                 year: currentYear,
                 age: age,
                 badgesSnapshot: player.badges
             };
+
+            if (!isSeasonStats(constructedData)) {
+                console.warn("AI output missing some expected metrics. Proceeding with best fit.");
+            }
+
+            return constructedData;
         } catch (e) {
             console.error("JSON Parsing failed:", response.text);
             throw new Error("Simulation corrupted. AI returned invalid data structure.");

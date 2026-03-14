@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { PlayerCreator } from './components/PlayerCreator';
 import { SimulationDashboard } from './components/SimulationDashboard';
 import { SeasonSummary } from './components/SeasonSummary';
 import { CoachingPanel } from './components/CoachingPanel';
 import { PlayerProfile, CareerSimulation, EraContext, CoachingStrategy, SeasonStats, EntryMethod, TrainingFocus, Badge, NBA_TEAMS, Coach, PlayerStats } from './types';
-import { simulateSeason, getEraContext } from './services/geminiService';
+import { getEraContext } from './services/geminiService';
+import { runSeasonSimulation } from './services/gameEngine';
+import { useAppStore } from './store';
 import { Hourglass, History, AlertCircle, Users, Briefcase, Settings } from 'lucide-react';
 
 const ERAS: EraContext[] = [
@@ -133,35 +135,27 @@ const EraSelector = ({ onSelect, isLoading, initialEntryMethod, initialTeam }: {
 };
 
 export default function App() {
-    const [step, setStep] = useState<'create' | 'era' | 'strategy' | 'season_loop' | 'career_end'>('create');
+    const store = useAppStore();
+    const {
+        step, setStep,
+        player, setPlayer,
+        currentYear, setCurrentYear,
+        entryMethod, setEntryMethod,
+        startTeam, setStartTeam,
+        strategy, setStrategy,
+        injuriesEnabled, setInjuriesEnabled,
+        seasons, setSeasons,
+        lastSeason, setLastSeason,
+        isSimulating, setIsSimulating,
+        error, setError,
+        currentAttributes, setCurrentAttributes,
+        currentBadges, setCurrentBadges,
+        xp, setXp,
+        reset
+    } = store;
 
-    // Game State
-    const [player, setPlayer] = useState<PlayerProfile | null>(null);
-    const [currentYear, setCurrentYear] = useState<number>(2003);
-    const [entryMethod, setEntryMethod] = useState<EntryMethod>('Draft');
-    const [startTeam, setStartTeam] = useState<string>('');
-    const [strategy, setStrategy] = useState<CoachingStrategy | null>(null);
-    const [injuriesEnabled, setInjuriesEnabled] = useState(true);
-
-    // Simulation Data
-    const [seasons, setSeasons] = useState<SeasonStats[]>([]);
-    const [lastSeason, setLastSeason] = useState<SeasonStats | null>(null);
-    const [isSimulating, setIsSimulating] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    // Dynamic Player State (Progression)
-    const [currentAttributes, setCurrentAttributes] = useState<PlayerProfile['stats'] | null>(null);
-    const [currentBadges, setCurrentBadges] = useState<Badge[]>([]);
-    const [xp, setXp] = useState(0);
-
-    const handlePlayerCreated = (p: PlayerProfile) => {
+    const handlePlayerCreated = useCallback((p: PlayerProfile) => {
         setPlayer(p);
-        setCurrentAttributes(p.stats);
-        setCurrentBadges(p.badges);
-        setXp(p.xp || 0);
-        setInjuriesEnabled(p.injuriesEnabled !== undefined ? p.injuriesEnabled : true);
-
-        // Check if player demanded a specific trade target on creation (draft demand)
         if (p.draftTradeRequest) {
             setEntryMethod('Specific Team');
             setStartTeam(p.draftTradeRequest);
@@ -169,142 +163,28 @@ export default function App() {
             setEntryMethod('Draft');
             setStartTeam('');
         }
-
         setStep('era');
-    };
+    }, [setPlayer, setEntryMethod, setStartTeam, setStep]);
 
-    const handleEraSelected = (year: number, method: EntryMethod, team?: string, context?: EraContext) => {
+    const handleEraSelected = useCallback((year: number, method: EntryMethod, team?: string, context?: EraContext) => {
         setCurrentYear(year);
-        // Only overwrite if not already set by player demand, OR if user changed the method in the UI
         setEntryMethod(method);
         if (team) setStartTeam(team);
         if (context && player) {
             setPlayer({ ...player, era: context });
         }
         setStep('strategy');
-    };
+    }, [setCurrentYear, setEntryMethod, setStartTeam, player, setPlayer, setStep]);
 
     const handleStrategyConfirmed = async (strat: CoachingStrategy) => {
         setStrategy(strat);
         setStep('season_loop');
-        // Use player's selected training focus if available, otherwise default to Balanced
         const initialTraining = player?.trainingFocus || 'Balanced';
         await runSeasonSimulation(strat, initialTraining, { requested: false, target: '' }, [], 0, true);
     };
 
-    const runSeasonSimulation = async (
-        strat: CoachingStrategy,
-        training: TrainingFocus,
-        tradeReq: { requested: boolean, target: string },
-        updatedBadges: Badge[],
-        spentXp: number,
-        isRookieYear: boolean,
-        manualAttributeUpdates?: PlayerStats,
-        activeCoach?: Coach
-    ) => {
-        if (!player || !currentAttributes) return;
-
-        setIsSimulating(true);
-        setError(null);
-
-        // If the user manually updated attributes using XP, commit those changes immediately before sim
-        const attributesForSim = manualAttributeUpdates || currentAttributes;
-
-        // Update state with changes made in Summary before simulating new season
-        if (!isRookieYear) {
-            setCurrentBadges(updatedBadges);
-            setXp(prev => prev - spentXp);
-        }
-
-        const playerStateForSim = {
-            ...player,
-            badges: isRookieYear ? player.badges : updatedBadges
-        };
-
-        try {
-            const seasonData = await simulateSeason(
-                playerStateForSim,
-                currentYear,
-                19 + seasons.length,
-                attributesForSim, // Use the potentially manually upgraded stats
-                seasons,
-                strat,
-                training,
-                injuriesEnabled,
-                tradeReq,
-                isRookieYear && entryMethod === 'Specific Team' ? startTeam : undefined,
-                activeCoach,
-                player.era
-            );
-
-            setLastSeason(seasonData);
-            setSeasons(prev => [...prev, seasonData]);
-
-            // Update attributes for next year (AI decided progression/regression)
-            let newAttributes = seasonData.ratingsSnapshot;
-            const currentAge = 19 + seasons.length;
-            if (player?.potential === 99 && currentAge >= 26 && currentAge <= 32) {
-                if (newAttributes.rating < 99) {
-                    newAttributes.rating = 99;
-                    newAttributes.threePoint = Math.max(newAttributes.threePoint, 90);
-                    newAttributes.midRange = Math.max(newAttributes.midRange, 95);
-                    newAttributes.layup = Math.max(newAttributes.layup, 95);
-                    newAttributes.speed = Math.max(newAttributes.speed, 90);
-                    newAttributes.iq = Math.max(newAttributes.iq, 95);
-                }
-            }
-            setCurrentAttributes(newAttributes);
-
-            // Add XP gained this season
-            let xpMultiplier = 3;
-            if (seasonData.awards.some(a => a.includes('MVP') || a.includes('Defensive Player'))) xpMultiplier = 9;
-            else if (seasonData.allStar || seasonData.awards.length > 0) xpMultiplier = 6;
-
-            setXp(prev => prev + ((seasonData.xpGained || 0) * xpMultiplier));
-
-            // Update Career Stats
-            setPlayer(prev => {
-                if (!prev) return null;
-                const currentStats = prev.careerStats || { totalPoints: 0, totalRebounds: 0, totalAssists: 0, championships: 0, mvps: 0, awards: [], legacyScore: 0 };
-
-                const newTotalPoints = Math.round(currentStats.totalPoints + (seasonData.ppg * seasonData.gamesPlayed));
-                const newTotalRebounds = Math.round(currentStats.totalRebounds + (seasonData.rpg * seasonData.gamesPlayed));
-                const newTotalAssists = Math.round(currentStats.totalAssists + (seasonData.apg * seasonData.gamesPlayed));
-                const newChampionships = currentStats.championships + (seasonData.championship ? 1 : 0);
-                const newMvps = currentStats.mvps + (seasonData.awards.some(a => a.includes('MVP')) ? 1 : 0);
-
-                const newAwards = [...(currentStats.awards || []), ...seasonData.awards];
-                if (seasonData.allStar) newAwards.push(`${seasonData.year} All-Star`);
-                if (seasonData.championship) newAwards.push(`${seasonData.year} NBA Champion`);
-
-                const legacyScore = Math.floor(newTotalPoints / 100) + (newChampionships * 500) + (newMvps * 300) + (newAwards.length * 50);
-
-                return {
-                    ...prev,
-                    careerStats: {
-                        totalPoints: newTotalPoints,
-                        totalRebounds: newTotalRebounds,
-                        totalAssists: newTotalAssists,
-                        championships: newChampionships,
-                        mvps: newMvps,
-                        awards: newAwards,
-                        legacyScore: legacyScore
-                    }
-                };
-            });
-
-            setCurrentYear(prev => prev + 1);
-        } catch (e) {
-            console.error(e);
-            setError(`The timeline destabilized. Failed to simulate season. Detail: ${e?.message || 'Unknown'}. Please try again.`);
-        } finally {
-            setIsSimulating(false);
-        }
-    };
-
-    const handleNextSeason = (training: TrainingFocus, tradeReq: { requested: boolean, target: string }, updatedBadges: Badge[], spentXp: number, newCoach?: Coach, updatedStats?: PlayerStats) => {
+    const handleNextSeason = useCallback((training: TrainingFocus, tradeReq: { requested: boolean, target: string }, updatedBadges: Badge[], spentXp: number, newCoach?: Coach, updatedStats?: PlayerStats) => {
         if (!strategy) return;
-
         let nextStrategy = strategy;
         if (newCoach) {
             nextStrategy = {
@@ -314,32 +194,15 @@ export default function App() {
             };
             setStrategy(nextStrategy);
         }
-
-        // Pass the new coach if hired, otherwise fallback to existing coach logic inside runSeasonSimulation (via lastSeason) is tricky because 
-        // runSeasonSimulation doesn't have direct access to lastSeason readily available in its args, but it uses the closure state 'seasons'.
-        // However, to be explicit, we should pass the active coach we want to use.
         const coachToUse = newCoach || lastSeason?.headCoach;
-
-        // If user bought attributes, updatedStats will be populated.
-        // If not, we fall back to currentAttributes in the runSeasonSimulation logic via manualAttributeUpdates argument
         runSeasonSimulation(nextStrategy, training, tradeReq, updatedBadges, spentXp, false, updatedStats, coachToUse);
-    };
+    }, [strategy, lastSeason, setStrategy]);
 
-    const handleRetire = () => {
+    const handleRetire = useCallback(() => {
         setStep('career_end');
-    };
+    }, [setStep]);
 
-    const reset = () => {
-        setStep('create');
-        setPlayer(null);
-        setSeasons([]);
-        setLastSeason(null);
-        setCurrentAttributes(null);
-        setCurrentBadges([]);
-        setXp(0);
-    };
-
-    const getCareerSimulationData = (): CareerSimulation => {
+    const getCareerSimulationData = useCallback((): CareerSimulation => {
         const totalPoints = seasons.reduce((acc, s) => acc + (s.ppg * s.gamesPlayed), 0);
         const titles = seasons.filter(s => s.championship).length;
         const mvps = seasons.filter(s => s.awards.some(a => a.includes('MVP'))).length;
@@ -352,7 +215,7 @@ export default function App() {
             seasons,
             legacyScore
         };
-    };
+    }, [seasons, player]);
 
     return (
         <div className="min-h-screen bg-[#f7f9fa] text-gray-900 font-sans selection:bg-nba-blue selection:text-white pb-20">
